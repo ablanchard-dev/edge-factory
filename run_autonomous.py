@@ -5,11 +5,11 @@ Le LLM (claude CLI) génère des hypothèses DSL ; le système les backteste OOS
 les actions small-cap et les juge (DSR déflaté + beta-neutral). Personne n'écrit
 de règle. Attendu : 0 survivant (DSL = TA prix = beta) mais boucle 100% autonome.
 """
+import os
 import sys
 import time
 
-sys.path.insert(0, "/opt/app/hyperdex/backend")
-sys.path.insert(0, "/opt/app/hyperdex/backend/edge_factory")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import autonomous as au
 import llm_hypothesis as lh
 from equities_adapter import EquitiesAdapter, EQ_TAKER_BPS
@@ -18,7 +18,8 @@ from research_memory import ResearchMemory
 TICKERS = ["PLUG", "FUBO", "SOFI", "RIOT", "MARA", "CLOV", "SPCE", "OPEN",
            "LMND", "RKLB", "IONQ", "DKNG", "AFRM", "UPST", "PATH", "SOUN",
            "ASTS", "ACHR", "JOBY", "CHPT", "RUN", "CLSK", "HUT", "BTBT"]
-MEM = "/opt/app/hyperdex/backend/edge_factory/_autonomous_research.json"
+MEM = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                   "_autonomous_research.json")
 
 
 def main():

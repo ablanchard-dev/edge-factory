@@ -6,11 +6,11 @@ short est natif (PAS de borrow stock — funding séparé non modélisé ici). D
 borrow_bps=0, taker 4.5, slippage ~10 (alts HL). Si le cross-sectional momentum
 crypto survit au CRITIC (beta-neutral + DSR déflaté), c'est un lead réel.
 """
+import os
 import sys
 import time
 
-sys.path.insert(0, "/opt/app/hyperdex/backend")
-sys.path.insert(0, "/opt/app/hyperdex/backend/edge_factory")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import cross_sectional as xs
 from hl_adapter import HLSmallCapAdapter
 from run_cross_sectional import align

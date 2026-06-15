@@ -9,11 +9,11 @@ lag=1 = réaliste (latence retail). Si même le GROSS lag=0 est nul → pas de s
 """
 import json
 import statistics
+import os
 import sys
 from collections import defaultdict
 
-sys.path.insert(0, "/opt/app/hyperdex/backend")
-sys.path.insert(0, "/opt/app/hyperdex/backend/edge_factory")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import obi_backtest as ob
 import universe as U
 from verdict import evaluate_edge

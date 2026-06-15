@@ -7,11 +7,11 @@ Risk-on BTC → long haut-beta / short bas-beta ; risk-off → l'inverse. Tout t
 (beta-neutral t≥3) dira si c'est de l'alpha ou du beta timé (probable beta_deguise).
 """
 import statistics
+import os
 import sys
 import time
 
-sys.path.insert(0, "/opt/app/hyperdex/backend")
-sys.path.insert(0, "/opt/app/hyperdex/backend/edge_factory")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import regime_beta as rb
 import universe as U
 from adapter import Bar, returns_from_bars

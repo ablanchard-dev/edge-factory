@@ -80,7 +80,8 @@ if __name__ == "__main__":
     import sys
     import time
     if "--live" in sys.argv:
-        sys.path.insert(0, "/opt/app/hyperdex/backend")
+        import os
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         from app.services.hl_api.info_client import InfoClient
         from hl_adapter import HLSmallCapAdapter
         a = HLSmallCapAdapter(InfoClient(), vol_max_usd=5_000_000)  # seuil bas

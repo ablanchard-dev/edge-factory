@@ -13,14 +13,9 @@ on consolide _dsr_pbo dans edge_factory ; pour l'instant import par chemin.
 import os
 import sys
 
-import critic as _critic  # même package
-
-# _dsr_pbo vit dans scripts/p2 (CLI standalone) — import par chemin en Phase 1
-_P2 = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                    "..", "scripts", "p2"))
-if _P2 not in sys.path:
-    sys.path.insert(0, _P2)
-import _dsr_pbo as _stats  # noqa: E402
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import critic as _critic  # noqa: E402  # même package
+import _dsr_pbo as _stats  # noqa: E402  # module au niveau racine
 
 _PERM_P_MAX = 0.05  # seuil significativité permutation (intouchable)
 

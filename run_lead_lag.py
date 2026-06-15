@@ -7,11 +7,11 @@ beta_window=48h, taker 4.5 + slip 5bps, exec_lag=1. Jugé CRITIC (DSR déflaté 
 beta-neutral + PBO). Prior BAS (le reversal-mort prédit que le rattrapage l'est aussi).
 """
 import statistics
+import os
 import sys
 import time
 
-sys.path.insert(0, "/opt/app/hyperdex/backend")
-sys.path.insert(0, "/opt/app/hyperdex/backend/edge_factory")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import lead_lag as ll
 from adapter import Bar, returns_from_bars
 from verdict import _stats, evaluate_edge

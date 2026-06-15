@@ -6,11 +6,11 @@ long low-funding, juge par le CRITIC (beta-neutral + DSR déflaté). Carry = le 
 robuste de la littérature ; voyons s'il survit net de coûts sur HL.
 """
 import statistics
+import os
 import sys
 import time
 
-sys.path.insert(0, "/opt/app/hyperdex/backend")
-sys.path.insert(0, "/opt/app/hyperdex/backend/edge_factory")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import funding as fd
 from adapter import Bar, returns_from_bars
 from verdict import evaluate_edge

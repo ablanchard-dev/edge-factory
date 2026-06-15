@@ -7,11 +7,11 @@ min_abs {0, 0.0005, 0.001} = 3 specs × per-coin agrégé equal-weight. n_trials
 Univers live HL, coûts réels, exec_lag=1. Survit → lead ; sinon réfuté propre.
 """
 import statistics
+import os
 import sys
 import time
 
-sys.path.insert(0, "/opt/app/hyperdex/backend")
-sys.path.insert(0, "/opt/app/hyperdex/backend/edge_factory")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import seasonality as sz
 import universe as U
 from adapter import Bar, returns_from_bars

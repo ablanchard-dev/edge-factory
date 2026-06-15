@@ -7,11 +7,11 @@ pré-enregistrée lookback {7,14,30} × top_frac {0.3,0.4} = 6 specs, n_trials=6
 Un seul run. Survit au CRITIC durci → 1er lead fondamental ; sinon réfutation propre.
 """
 import statistics
+import os
 import sys
 import time
 
-sys.path.insert(0, "/opt/app/hyperdex/backend")
-sys.path.insert(0, "/opt/app/hyperdex/backend/edge_factory")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import tvl_signal as tv
 import universe as U
 from verdict import evaluate_edge

@@ -6,11 +6,11 @@ premium de funding_history → pas de spot externe). Portefeuille equal-weight,
 jugé par le CRITIC (beta≈0 attendu ; alpha = la récolte de funding nette).
 """
 import statistics
+import os
 import sys
 import time
 
-sys.path.insert(0, "/opt/app/hyperdex/backend")
-sys.path.insert(0, "/opt/app/hyperdex/backend/edge_factory")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import funding as fd
 from adapter import Bar, returns_from_bars
 from verdict import evaluate_edge

@@ -7,11 +7,11 @@ Si le Sharpe est ~15 annualisé, la vol est probablement sous-estimée.
 """
 import math
 import statistics
+import os
 import sys
 import time
 
-sys.path.insert(0, "/opt/app/hyperdex/backend")
-sys.path.insert(0, "/opt/app/hyperdex/backend/edge_factory")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import funding as fd
 from app.services.hl_api.info_client import InfoClient
 
