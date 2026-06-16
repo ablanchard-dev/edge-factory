@@ -5,7 +5,7 @@ Combine les 3 gates en UN verdict : un edge ne PASSE que s'il survit à TOUS :
   - DSR > seuil (robuste au multiple-testing / overfit, déflaté par n_trials)
   - PBO < seuil (pas d'overfit en CSCV)  [si matrice fournie]
 
-Run: cd backend/edge_factory && ../../.venv/bin/python test_verdict.py
+Run: python -m pytest test_verdict.py -q   (modules flat at repo root)
 """
 import os
 import random

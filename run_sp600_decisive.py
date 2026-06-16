@@ -82,7 +82,7 @@ def main():
     pbo = xs.cross_sectional_pbo(sb, specs, taker_bps=8.0, slippage_bps=30.0,
                                  borrow_bps_annual=800.0, S=8)
     print(f"PBO/CSCV (overfit de sélection entre hyp) = {pbo:.3f} "
-          f"({'OVERFIT >0.5' if pbo > 0.5 else 'OK <0.5'})", flush=True)
+          f"({'OVERFIT >0.2' if pbo > 0.2 else 'OK <0.2'})", flush=True)
     res.sort(key=lambda r: r["gates"]["dsr"], reverse=True)
     for r in res:
         h = r["hypothesis"]["signal"]

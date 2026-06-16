@@ -20,8 +20,8 @@ Une hypothèse PASSE seulement si TOUTES passent (agrégation ET stricte).
 | Sous-gate | Fichier | Rejette | Seuil |
 |---|---|---|---|
 | **beta-neutral** | `critic.py` | beta déguisé en alpha (OLS sur bench, exige alpha résiduel) | **t_alpha ≥ 3.0** (HLZ 2016) |
-| **DSR** déflaté | `scripts/p2/_dsr_pbo.py` | Sharpe gonflé par le nb d'essais (data-snooping) | DSR > 0.95 |
-| **PBO/CSCV** | `scripts/p2/_dsr_pbo.py` | overfit de sélection (best in-sample chanceux ?) | **PBO < 0.2** (LdP) |
+| **DSR** déflaté | `_dsr_pbo.py` | Sharpe gonflé par le nb d'essais (data-snooping) | DSR > 0.95 |
+| **PBO/CSCV** | `_dsr_pbo.py` | overfit de sélection (best in-sample chanceux ?) | **PBO < 0.2** (LdP) |
 | **permutation** | `permutation.py` | data-mining (Sharpe sans structure temporelle) | p < 0.05 |
 | **convexité/tail** | `critic.py` | short-vol déguisé (γ<0 sur bench², explose au krach) | t_γ > −2 |
 
@@ -64,7 +64,7 @@ une famille = une fabrique `make_*_hunter` dans `hunters.py`. Modules : `hunt.py
 | 4 | ICT/SMC (Dexterio) | no edge |
 | 5-6 | Momentum/mean-rev/breakout per-symbol (HL+actions) | = beta déguisé |
 | 7 | New-listing momentum HL | univers trop mince (N=2) |
-| 8-11 | Cross-sectional 12m momentum (24→215 noms S&P600) | t=0.88-1.69, PBO 0.84, sous-seuil |
+| 8-11 | Cross-sectional 12m momentum (24→215 noms S&P600) | test décisif `xsm_120_0.33` : t_alpha=−0.44, DSR=0.27 (seuil 0.95), sous-seuil (PBO non persisté — matrices CSCV gitignored, `pbo`=null dans les records) |
 | 12 | Cross-sectional reversion HL daily | t=0.72 faible |
 | 13 | Funding carry cross-sectional (price-exposé) | t=−2.5 à −3.5 (squeeze) |
 | 14a | Funding carry **delta-neutral** | PASS idéalisé → CASSÉ au cost-stress (mirage basse-vol) |

@@ -129,8 +129,8 @@ exactement comme une réfutation de l'Étage 1.
 | Module | Rôle | Seuil |
 |---|---|---|
 | `verdict.py` | agrège les 4 sous-gates en 1 verdict PASS/FAIL | — |
-| `critic.py` | sous-gate beta-neutral (alpha résiduel OLS) | t_alpha ≥ 2 |
-| `scripts/p2/_dsr_pbo.py` | sous-gates DSR (déflaté n_trials) + PBO/CSCV | DSR>0.95, PBO<0.5 |
+| `critic.py` | sous-gate beta-neutral (alpha résiduel OLS) | t_alpha ≥ 3.0 |
+| `_dsr_pbo.py` | sous-gates DSR (déflaté n_trials) + PBO/CSCV | DSR>0.95, PBO<0.2 |
 | `permutation.py` | sous-gate permutation (tue le data-mining) | p<0.05 |
 | `selftest.py` | prouve que le juge marche (best-of-noise rejeté, bruit→0) | — |
 
