@@ -33,8 +33,11 @@ Most retail "backtests" lie to you: multiple-testing, overfitting, hidden beta,
 unrealistic fills. edge-factory was built to make self-deception *hard*. Roughly a
 dozen strategy families (copy-trading, technical, new-listing, cross-sectional
 momentum/reversal, lead-lag, funding…) were all refuted by the critic — including a
-12-month-momentum signal that looked promising (t=1.69) but was killed by a clean
-decisive test (t=0.88, PBO 0.84 → overfit).
+cross-sectional 12-month-momentum signal that looked promising in early hand-picked
+runs but collapsed on a clean decisive test over the real S&P 600 universe
+(`xsm_120_0.33` in `_xs_research.json`: t_alpha=-0.44, DSR=0.27 vs the 0.95 gate).
+The CSCV/PBO matrices for that run are gitignored, so only the gate outputs are
+persisted (`pbo` is `null` in the committed records).
 
 ## Stack
 

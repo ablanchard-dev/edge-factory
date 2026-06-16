@@ -7,8 +7,8 @@ Un edge ne PASSE que s'il survit à TOUS les gates :
   3. PBO < seuil   : pas d'overfit en CSCV (si matrice fournie)        [_dsr_pbo]
 
 Note : les returns passés doivent être ceux de la période TEST/OOS (le split
-temporel est la responsabilité de l'appelant / de l'Experiment Agent). En Phase 2
-on consolide _dsr_pbo dans edge_factory ; pour l'instant import par chemin.
+temporel est la responsabilité de l'appelant / de l'Experiment Agent).
+critic et _dsr_pbo sont des modules à la racine du repo (import direct).
 """
 import os
 import sys

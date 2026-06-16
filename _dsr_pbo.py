@@ -228,8 +228,8 @@ def main():
         pbo, logits = pbo_cscv(rows, S=args.S)
         print(f"\n=== PBO / CSCV ({len(rows)}j × {len(wids)} wallets, "
               f"S={args.S}, {len(logits)} combos) ===")
-        print(f"  PBO = {pbo:.3f}  ({'OVERFIT' if pbo > 0.5 else 'ROBUSTE'} "
-              f"— seuil 0.5)")
+        print(f"  PBO = {pbo:.3f}  ({'OVERFIT' if pbo > 0.2 else 'ROBUSTE'} "
+              f"— seuil 0.2)")
         # DSR corrigé non-normal par wallet (skew/kurt réels du return série)
         per = [[r[n] for r in rows] for n in range(len(wids))]
         mus = [(_sharpe(s)) for s in per]
