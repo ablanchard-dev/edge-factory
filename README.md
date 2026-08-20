@@ -58,7 +58,7 @@ python autonomous.py    # autonomous LLM-driven hypothesis loop (optional)
 ## Layout
 
 ```
-*.py                       # ~70 modules + 42 test files: generator, critic, backtest, gbm,
+*.py                       # 75 modules + 43 test files: generator, critic, backtest, gbm,
                            #   ridge, metrics, neutralize, hypothesis_dsl, llm_hypothesis,
                            #   adapters (hl, equities), signals (obi, funding, liq, …)
 app/services/hl_api/       # vendored Hyperliquid data client (InfoClient)
