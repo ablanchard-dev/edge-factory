@@ -13,6 +13,8 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Sortie redirigee sous Windows = cp1252 : le premier print avec « ≥ » levait UnicodeEncodeError.
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 import coinalyze as cz
 import hunters as H
 import liq_spike as ls
@@ -81,11 +83,22 @@ def fetch_funding(client, coins, days=DAYS):
     return funding, premium
 
 
+def coinalyze_key():
+    """Cle Coinalyze (~/.coinalyze_key) ou None. Sans cle, la chasse tourne quand meme :
+    seules les familles liq-spike et OI-divergence, qui en dependent, sont sautees."""
+    path = os.path.expanduser("~/.coinalyze_key")
+    if not os.path.exists(path):
+        return None
+    return open(path).read().strip() or None
+
+
 def fetch_oi(coins, bars, days=DAYS):
     """Open-interest HORAIRE HL natif (Coinalyze open-interest-history, {coin}.H — marche
     contrairement aux liq) → {coin: oi_close[]} aligné aux barres pour la divergence OI-prix."""
-    import os
-    key = open(os.path.expanduser("~/.coinalyze_key")).read().strip()
+    key = coinalyze_key()
+    if key is None:
+        print("   open-interest : pas de ~/.coinalyze_key -> famille OI-divergence non chassee", flush=True)
+        return {}
     to = int(time.time())
     frm = to - days * 24 * 3600
     out = {}
@@ -104,8 +117,10 @@ def fetch_oi(coins, bars, days=DAYS):
 def fetch_liquidations(coins, bars, days=DAYS):
     """Liquidations HL natives via Coinalyze ('{coin}.H'), agrégées en net_liq signé
     par barre (aligné aux candles de chaque coin) → {coin: net_liq[]} pour liq_spike."""
-    import os
-    key = open(os.path.expanduser("~/.coinalyze_key")).read().strip()
+    key = coinalyze_key()
+    if key is None:
+        print("   liquidations : pas de ~/.coinalyze_key -> famille liq-spike non chassee", flush=True)
+        return {}
     to = int(time.time())
     frm = to - days * 24 * 3600
     out = {}

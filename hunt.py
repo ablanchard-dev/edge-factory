@@ -15,8 +15,10 @@ Un "hunter" est une callable sans argument qui retourne un dict :
 (les familles existantes produisent déjà ces returns ; un hunter = l'adaptateur
 fetch+backtest → ces séries). Le CRITIC (verdict.evaluate_edge) reste l'arbitre.
 """
+import statistics
 from typing import Callable, Dict, List, Optional
 
+from _dsr_pbo import _sharpe
 from research_memory import ResearchMemory
 from verdict import evaluate_edge
 
@@ -45,16 +47,21 @@ class Registry:
         """
         if name not in self._hunters:
             raise KeyError(f"chasseur inconnu : {name}")
-        inp = self._hunters[name]()
+        return self._judge_inputs(name, self._hunters[name]())
+
+    def _judge_inputs(self, name: str, inp: Dict,
+                      sr_variance: Optional[float] = None) -> Dict:
         effective_n_trials = max(inp.get("n_trials", 1), len(self._hunters))
+        sr_var = sr_variance if sr_variance is not None else inp.get("sr_variance", 0.05)
         v = evaluate_edge(
             inp_get(inp, "strat"), inp_get(inp, "bench"),
             n_trials=effective_n_trials,
-            sr_variance=inp.get("sr_variance", 0.05),
+            sr_variance=sr_var,
             pbo_matrix=inp.get("pbo_matrix"),
             permutation=inp.get("permutation"),
         )
         v["gates"]["effective_n_trials"] = effective_n_trials
+        v["gates"]["sr_variance"] = round(sr_var, 6)
         res = {"name": name, "pass": v["pass"], "reasons": v["reasons"],
                "gates_applied": v["gates_applied"], "gates": v["gates"]}
         self._results[name] = res
@@ -67,8 +74,17 @@ class Registry:
         return res
 
     def hunt_all(self) -> List[Dict]:
-        """Juge TOUS les chasseurs enregistrés (la chasse complète)."""
-        return [self.judge(n) for n in self._hunters]
+        """Juge TOUS les chasseurs enregistrés (la chasse complète).
+
+        Le DSR déflate par la variance des Sharpe DES ESSAIS (Bailey & López de Prado),
+        dans l'unité des returns. On la MESURE sur les chasseurs de la chasse au lieu du
+        0.05 codé en dur : sur des barres horaires ce 0.05 fixait la barre à un Sharpe de
+        0.35 par barre, et la chasse du 16/09 rendait DSR=0.00 pour les 10 familles.
+        """
+        inputs = {n: h() for n, h in self._hunters.items()}
+        sharpes = [_sharpe(inp_get(inp, "strat")) for inp in inputs.values()]
+        var = statistics.pvariance(sharpes) if len(sharpes) >= 2 else None
+        return [self._judge_inputs(n, inp, sr_variance=var) for n, inp in inputs.items()]
 
     def leaderboard(self) -> List[Dict]:
         """Classe les résultats : survivants d'abord, puis par Sharpe décroissant."""

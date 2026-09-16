@@ -39,6 +39,29 @@ def test_judge_reports_the_gates_that_ran():
     assert res["gates_applied"] == ["beta_neutral", "dsr", "convexity"]
 
 
+def _hourly(mean, seed, n=1440):
+    rng = random.Random(seed)
+    return lambda: {"strat": [mean + rng.gauss(0, 0.1) for _ in range(n)],
+                    "bench": [random.Random(seed + 1000 + i).gauss(0, 1) for i in range(n)],
+                    "n_trials": 1, "sr_variance": 0.05}
+
+
+def test_hunt_all_deflates_with_the_measured_variance_of_the_trials():
+    # Les chasseurs passaient sr_variance=0.05 en dur. Sur des barres horaires, le Sharpe
+    # par barre vit autour de 0.0-0.2 : Var=0.05 place la barre DSR a SR0=0.35 par barre,
+    # infranchissable. Mesure sur la vraie chasse 16/09 : DSR=0.00 pour les 10 familles.
+    # Le DSR (Bailey & Lopez de Prado) deflate par la variance des Sharpe DES ESSAIS.
+    reg = hunt.Registry()
+    reg.register("planted_hourly", _hourly(0.02, 1))       # Sharpe/barre ~0.2
+    for i in range(9):
+        reg.register(f"noise_{i}", _hourly(0.0, 10 + i))
+    reg.hunt_all()
+    lb = {r["name"]: r for r in reg.leaderboard()}
+    assert lb["planted_hourly"]["pass"] is True, lb["planted_hourly"]
+    assert not any(lb[f"noise_{i}"]["pass"] for i in range(9))
+    assert lb["planted_hourly"]["gates"]["sr_variance"] < 0.05
+
+
 def test_register_and_list():
     reg = hunt.Registry()
     reg.register("planted", _planted_edge)
