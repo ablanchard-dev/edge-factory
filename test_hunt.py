@@ -30,6 +30,15 @@ def _pure_noise():
     return {"strat": strat, "bench": bench, "n_trials": 200, "sr_variance": 0.05}
 
 
+def test_judge_reports_the_gates_that_ran():
+    # Un chasseur sans pbo_matrix ni permutation n'est juge que par 3 gates : le resultat
+    # (et donc le leaderboard / la memoire) doit le dire, pas afficher « 5-gates ».
+    reg = hunt.Registry()
+    reg.register("planted", _planted_edge)
+    res = reg.judge("planted")
+    assert res["gates_applied"] == ["beta_neutral", "dsr", "convexity"]
+
+
 def test_register_and_list():
     reg = hunt.Registry()
     reg.register("planted", _planted_edge)

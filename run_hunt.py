@@ -189,8 +189,9 @@ def main():
     oi = fetch_oi(coins, bars)
     reg = build_registry(bars, slippage_bps=med_spread,
                          funding=funding, premium=premium, liq=liq, oi=oi)
-    print(f"\n=== CHASSE : {len(reg.names())} familles enregistrées → CRITIC 5-gates "
-          f"(beta+DSR+PBO+perm+convexité, durci t=3/PBO=0.2) ===", flush=True)
+    print(f"\n=== CHASSE : {len(reg.names())} familles enregistrées → CRITIC "
+          f"(beta+DSR+convexité toujours ; PBO/permutation seulement si le chasseur "
+          f"fournit leurs données) ===", flush=True)
     t0 = time.perf_counter()
     reg.hunt_all()
     print(f"   chasse en {time.perf_counter()-t0:.0f}s\n", flush=True)
@@ -204,7 +205,8 @@ def main():
         bn = g.get("beta_neutral", {})
         print(f"{r['name']:<22} | {str(r['pass']):>5} | {g.get('sharpe', 0):>+7.3f} | "
               f"{g.get('dsr', 0):>5.2f} | {bn.get('beta', 0):>+6.2f} | "
-              f"{bn.get('t_alpha', 0):>+7.2f} | {','.join(r['reasons'])}", flush=True)
+              f"{bn.get('t_alpha', 0):>+7.2f} | {','.join(r['reasons'])} "
+              f"[gates: {'+'.join(r['gates_applied'])}]", flush=True)
     surv = [r for r in lb if r["pass"]]
     print(f"\nSURVIVANTS : {len(surv)}/{len(lb)}"
           f"{' → ' + ', '.join(s['name'] for s in surv) if surv else ' (aucun — honnête)'}",

@@ -36,7 +36,7 @@ class Registry:
         return list(self._hunters)
 
     def judge(self, name: str) -> Dict:
-        """Exécute le chasseur, le juge via le CRITIC 4-gates, logge le verdict.
+        """Exécute le chasseur, le juge via le CRITIC, logge le verdict et les gates appliquées.
 
         V1 — n_trials réel : le DSR doit déflater par le VRAI nombre d'essais du
         multiple-testing = au moins le nombre de hunters enregistrés (chaque hunter
@@ -56,12 +56,13 @@ class Registry:
         )
         v["gates"]["effective_n_trials"] = effective_n_trials
         res = {"name": name, "pass": v["pass"], "reasons": v["reasons"],
-               "gates": v["gates"]}
+               "gates_applied": v["gates_applied"], "gates": v["gates"]}
         self._results[name] = res
         if self._memory is not None:
             self._memory.record({"hypothesis": {"signal": {"type": name}},
                                  "venue": "hunt", "pass": v["pass"],
-                                 "reasons": v["reasons"], "gates": v["gates"]})
+                                 "reasons": v["reasons"],
+                                 "gates_applied": v["gates_applied"], "gates": v["gates"]})
             self._memory.save()
         return res
 

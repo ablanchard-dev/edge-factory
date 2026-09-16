@@ -67,9 +67,19 @@ def evaluate_edge(strat_returns, bench_returns, n_trials, sr_variance,
     if not conv["pass"]:
         reasons.append("convexity_risk")
 
+    # Les gates qui ont REELLEMENT juge : PBO et permutation sont ignorees sans donnees,
+    # un PASS ne doit pas laisser croire qu'elles ont tourne.
+    applied = ["beta_neutral", "dsr"]
+    if pbo is not None:
+        applied.append("pbo")
+    if perm_p is not None:
+        applied.append("permutation")
+    applied.append("convexity")
+
     return {
         "pass": len(reasons) == 0,
         "reasons": reasons,
+        "gates_applied": applied,
         "gates": {
             "beta_neutral": beta,
             "dsr": round(dsr, 4),
