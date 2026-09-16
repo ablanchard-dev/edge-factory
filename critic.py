@@ -9,7 +9,7 @@ le benchmark et on exige un alpha RÉSIDUEL significatif après retrait du beta.
 
 OLS pur-python (pas de numpy/scipy requis), testé known-answer dans test_critic.py.
 Le DSR/PBO (overfit / multiple-testing) vit dans _dsr_pbo.py (racine du repo) ;
-le verdict agrégé (OOS + DSR + PBO + beta-neutral) sera câblé en itération suivante.
+le verdict agrégé vit dans verdict.evaluate_edge (utilisé par hunt.Registry).
 """
 import math
 

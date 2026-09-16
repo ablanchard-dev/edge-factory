@@ -126,6 +126,19 @@ def test_permutation_absent_is_backward_compatible():
     assert r["gates"]["permutation"] is None
 
 
+def test_verdict_lists_only_the_gates_that_actually_ran():
+    # run_hunt annonçait « 5-gates (beta+DSR+PBO+perm+convexité) » alors qu'aucun chasseur
+    # ne fournit de matrice PBO ni de permutation : 3 gates tournaient. Le verdict doit
+    # dire lesquelles ont réellement jugé.
+    strat = _alpha_strat(300, 0.5, 8)
+    bench = _bench(300, 88)
+    r = v.evaluate_edge(strat, bench, n_trials=5, sr_variance=0.2)
+    assert r["gates_applied"] == ["beta_neutral", "dsr", "convexity"]
+    perm = {"p_value": 0.01, "significant": True}
+    r2 = v.evaluate_edge(strat, bench, n_trials=5, sr_variance=0.2, permutation=perm)
+    assert r2["gates_applied"] == ["beta_neutral", "dsr", "permutation", "convexity"]
+
+
 if __name__ == "__main__":
     fns = [val for k, val in sorted(globals().items()) if k.startswith("test_")]
     fails = 0
