@@ -10,6 +10,8 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Sortie redirigee sous Windows = cp1252 : un print avec « ≥ » levait UnicodeEncodeError.
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 import autonomous as au
 import llm_hypothesis as lh
 from equities_adapter import EquitiesAdapter, EQ_TAKER_BPS

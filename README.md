@@ -5,7 +5,8 @@ generates candidate strategies, backtests them with realistic costs, and runs th
 through a rigorous statistical **critic** whose entire purpose is to **kill false
 edges before you ever believe in them**.
 
-> ⚠️ **The honest headline:** across ~80+ tested hypotheses, this machine found **no
+> ⚠️ **The honest headline:** across the hypotheses it judged (66 verdicts are recorded in
+> the committed research files), this machine found **no
 > robust, tradable edge** — and that is the point. Its value is the *discipline*: it
 > has repeatedly killed strategies that looked profitable but were just noise. In
 > quant research, a tool that reliably says "no" is worth more than one that flatters
@@ -17,11 +18,16 @@ edges before you ever believe in them**.
   proposes strategies through a **safe DSL** (no arbitrary code execution).
 - **Backtests realistically** — sourced slippage/borrow costs, `exec_lag=1` for
   live parity (no look-ahead, no free fills).
-- **Judges with a 3-gate critic** — a strategy only "passes" if it survives all three:
-  - **DSR** (Deflated Sharpe Ratio) — accounts for how many strategies were tried.
-  - **Beta-neutrality** — the edge must not just be hidden market exposure.
-  - **PBO / CSCV** — Probability of Backtest Overfitting via combinatorially-symmetric
-    cross-validation.
+- **Judges with a critic** (`verdict.evaluate_edge`) — a strategy passes only if every
+  gate that ran says yes:
+  - **Beta-neutrality** (always) — the edge must not just be hidden market exposure.
+  - **DSR** (always) — Deflated Sharpe Ratio, deflated by the real number of hunters tried
+    and by the measured variance of their Sharpe ratios (in the unit of the returns: a
+    fixed variance made the gate unpassable on hourly bars).
+  - **Convexity / tail** (always) — kills disguised short-volatility.
+  - **PBO / CSCV** and **permutation test** — only when the hunter supplies a trial matrix
+    or a permutation result. The shipped hunters supply neither, so a hunt is judged by
+    the three gates above; every verdict records `gates_applied`.
 - **Pulls real data** — adapters for Hyperliquid (perps) and equities (Yahoo, adj-close).
 
 See [`CAHIER_DES_CHARGES.md`](CAHIER_DES_CHARGES.md) for the full spec and
@@ -48,9 +54,18 @@ persisted (`pbo` is `null` in the committed records).
 
 ```bash
 pip install -r requirements.txt
-python hunt.py          # run the hunters / validation pipeline
-python autonomous.py    # autonomous LLM-driven hypothesis loop (optional)
+python -m pytest -q       # the test suite, no network
+python run_hunt.py        # full hunt on the live Hyperliquid perp universe (60 days, 1h)
+python run_autonomous.py  # optional: LLM proposes DSL hypotheses (needs the claude CLI)
 ```
+
+`hunt.py` and `autonomous.py` are the libraries behind these entry points; running them
+directly does nothing. Without a Coinalyze key in `~/.coinalyze_key`, the hunt skips the
+liquidation and open-interest families and judges the rest.
+
+A run on 16 Sept 2026 (19 perps, 60 days, 10 families): 0 survivors. The closest,
+delta-neutral funding carry, had a significant residual alpha (t = 3.87) and a DSR of
+0.91, just under the 0.95 gate.
 
 > Modules are flat at the repo root (`import adapter`, `from critic import ...`).
 > Datasets are not included (`numerai_data/`, parquet files are gitignored).
