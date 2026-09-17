@@ -55,7 +55,7 @@ persisted (`pbo` is `null` in the committed records).
 ## Run
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.txt pytest
 python selftest.py        # proof the critic works, offline, < 1 s (see below)
 python -m pytest -q       # the test suite, no network
 python run_hunt.py        # full hunt on the live Hyperliquid perp universe (60 days, 1h)
