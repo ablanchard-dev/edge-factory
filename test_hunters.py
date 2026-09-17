@@ -45,6 +45,32 @@ def test_cross_sectional_hunter_shape():
     assert 0 < len(out["strat"]) < 200
 
 
+def test_bar_hunters_run_the_permutation_gate_when_asked():
+    # 17/09 : la porte permutation existait mais aucun chasseur ne la fournissait, donc
+    # elle ne jugeait jamais rien. Les chasseurs sur bougies la calculent a la demande,
+    # sur la portion TEST, et le verdict la liste dans gates_applied.
+    sb = _symbol_bars()
+    bench = _trend_bars(200, 0.0005, seed=99)
+    for h in (H.make_cross_sectional_hunter(sb, bench, "xs_momentum", {"lookback": 5},
+                                            n_trials=2, permutations=30),
+              H.make_lead_lag_hunter(sb, bench, lookback=2, n_trials=2, permutations=30)):
+        out = h()
+        perm = out.get("permutation")
+        assert perm is not None and 0.0 < perm["p_value"] <= 1.0
+        assert perm["n_permutations"] == 30
+    reg = hunt.Registry()
+    reg.register("xs", H.make_cross_sectional_hunter(sb, bench, "xs_momentum", {"lookback": 5},
+                                                     n_trials=2, permutations=30))
+    assert "permutation" in reg.judge("xs")["gates_applied"]
+
+
+def test_bar_hunters_skip_permutation_by_default():
+    sb = _symbol_bars()
+    bench = _trend_bars(200, 0.0005, seed=99)
+    out = H.make_cross_sectional_hunter(sb, bench, "xs_momentum", {"lookback": 5})()
+    assert "permutation" not in out
+
+
 def test_funding_carry_hunter_shape():
     n = 200
     rng = random.Random(1)

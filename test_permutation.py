@@ -28,6 +28,26 @@ def _first_symbol_returns(bars_by_symbol):
     return [(closes[i] - closes[i - 1]) / closes[i - 1] for i in range(1, len(closes))]
 
 
+def test_pvalue_counts_the_observed_draw_and_is_never_zero():
+    # 17/09 : p = ge / n pouvait valoir 0 (meme defaut que dans Dexterio, dont le module
+    # est porte). Correction (k+1)/(n+1) : la valeur observee compte comme un tirage.
+    # Signal qui exploite la structure temporelle : sur la vraie serie il bat TOUTES les
+    # permutations, donc l'ancien calcul rendait exactement p = 0.
+    pattern = ([0.02] * 5 + [-0.02] * 5) * 12
+    closes = [100.0]
+    for r_ in pattern:
+        closes.append(closes[-1] * (1 + r_))
+    bars = {"A": _bars(closes)}
+
+    def momentum_timing(bbs):
+        c = [b.close for b in bbs["A"]]
+        rets = [(c[i] - c[i - 1]) / c[i - 1] for i in range(1, len(c))]
+        return [rets[i] if rets[i - 1] > 0 else 0.0 for i in range(1, len(rets))]
+
+    r = pm.permutation_test(momentum_timing, bars, n_permutations=40, seed=1)
+    assert r["p_value"] >= 1.0 / 41
+
+
 def test_pvalue_in_unit_interval():
     rng = random.Random(1)
     bars = {"A": _bars([100 * (1 + rng.uniform(-0.02, 0.02)) ** i for i in range(200)])}
