@@ -92,7 +92,7 @@ significant residual alpha (t = 4.27) and a DSR of 0.93, just under the 0.95 gat
 ## Layout
 
 ```
-*.py                       # 70 modules + 43 test files: generator, critic, backtest, gbm,
+*.py                       # 75 modules + 43 test files (17/09/2026): generator, critic, backtest, gbm,
                            #   ridge, metrics, neutralize, hypothesis_dsl, llm_hypothesis,
                            #   adapters (hl, equities), signals (obi, funding, liq, …)
 app/services/hl_api/       # vendored Hyperliquid data client (InfoClient)
