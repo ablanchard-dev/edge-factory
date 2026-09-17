@@ -26,6 +26,9 @@ from app.services.hl_api.info_client import InfoClient
 HOUR = 3600_000
 DAYS = 60
 MEM = "hunt_memory.json"
+# Porte permutation sur les familles a bougies (cross-sectional, lead-lag) : la strategie est
+# re-tournee sur des bougies aux returns melanges. 200 tirages = p minimal 1/201.
+PERMUTATIONS = 200
 
 
 def fetch_hl():
@@ -158,14 +161,16 @@ def build_registry(bars, slippage_bps=5.0, funding=None, premium=None, liq=None,
     for feat, lb in xs_grid:
         reg.register(f"{feat}_lb{lb}", H.make_cross_sectional_hunter(
             bars, btc, feat, {"lookback": lb}, top_frac=0.3,
-            taker_bps=U.TAKER_BPS, slippage_bps=slippage_bps, n_trials=n_xs))
+            taker_bps=U.TAKER_BPS, slippage_bps=slippage_bps, n_trials=n_xs,
+            permutations=PERMUTATIONS))
 
     # famille lead-lag BTC→alts (grille lookbacks)
     alts = {s: b for s, b in bars.items() if s != "BTC"}
     for lb in (1, 2, 3):
         reg.register(f"lead_lag_lb{lb}", H.make_lead_lag_hunter(
             alts, btc, lookback=lb, top_frac=0.3,
-            taker_bps=U.TAKER_BPS, slippage_bps=slippage_bps, n_trials=3))
+            taker_bps=U.TAKER_BPS, slippage_bps=slippage_bps, n_trials=3,
+            permutations=PERMUTATIONS))
 
     # famille FUNDING CARRY delta-neutral (maker — le carry s'exécute en limit)
     if funding and premium:
@@ -205,7 +210,7 @@ def main():
     reg = build_registry(bars, slippage_bps=med_spread,
                          funding=funding, premium=premium, liq=liq, oi=oi)
     print(f"\n=== CHASSE : {len(reg.names())} familles enregistrées → CRITIC "
-          f"(beta+DSR+convexité toujours ; PBO/permutation seulement si le chasseur "
+          f"(beta+DSR+convexité toujours ; permutation sur les familles a bougies ; PBO seulement si le chasseur "
           f"fournit leurs données) ===", flush=True)
     t0 = time.perf_counter()
     reg.hunt_all()

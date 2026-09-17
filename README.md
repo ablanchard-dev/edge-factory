@@ -25,9 +25,11 @@ edges before you ever believe in them**.
     and by the measured variance of their Sharpe ratios (in the unit of the returns: a
     fixed variance made the gate unpassable on hourly bars).
   - **Convexity / tail** (always) — kills disguised short-volatility.
-  - **PBO / CSCV** and **permutation test** — only when the hunter supplies a trial matrix
-    or a permutation result. The shipped hunters supply neither, so a hunt is judged by
-    the three gates above; every verdict records `gates_applied`.
+  - **Permutation test** — the strategy is re-run on bars whose returns are shuffled
+    (timing destroyed); it must beat 95% of 200 shuffles. Run for every bar-based family
+    (cross-sectional, lead-lag); funding and liquidation families are not bar-based.
+  - **PBO / CSCV** — only when a hunter supplies a trial matrix. Every verdict records
+    `gates_applied`, so a pass never implies a gate that did not run.
 - **Pulls real data** — adapters for Hyperliquid (perps) and equities (Yahoo, adj-close).
 
 See [`CAHIER_DES_CHARGES.md`](CAHIER_DES_CHARGES.md) for the full spec and
@@ -63,9 +65,9 @@ python run_autonomous.py  # optional: LLM proposes DSL hypotheses (needs the cla
 directly does nothing. Without a Coinalyze key in `~/.coinalyze_key`, the hunt skips the
 liquidation and open-interest families and judges the rest.
 
-A run on 16 Sept 2026 (19 perps, 60 days, 10 families): 0 survivors. The closest,
-delta-neutral funding carry, had a significant residual alpha (t = 3.87) and a DSR of
-0.91, just under the 0.95 gate.
+A run on 17 Sept 2026 (60 days of 1h bars, 10 families): 0 survivors. All nine bar-based
+families also failed the permutation test. The closest, delta-neutral funding carry, had a
+significant residual alpha (t = 4.27) and a DSR of 0.93, just under the 0.95 gate.
 
 > Modules are flat at the repo root (`import adapter`, `from critic import ...`).
 > Datasets are not included (`numerai_data/`, parquet files are gitignored).
