@@ -61,7 +61,8 @@ def permutation_test(strategy: Strategy, bars_by_symbol: Dict[str, List[Bar]],
         except Exception:
             shuffled.append(0.0)
     ge = sum(1 for s in shuffled if s >= real_sharpe)
-    p_value = ge / len(shuffled) if shuffled else 1.0
+    # (k+1)/(n+1) : la valeur observee compte comme un tirage ; ge/n pouvait valoir 0 (17/09).
+    p_value = (ge + 1) / (len(shuffled) + 1) if shuffled else 1.0
     return {
         "p_value": p_value,
         "significant": p_value < P_THRESHOLD,

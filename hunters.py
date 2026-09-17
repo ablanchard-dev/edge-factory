@@ -17,6 +17,7 @@ import funding as fd
 import lead_lag as ll
 import liq_spike as ls
 import oi_signal as oi
+import permutation as perm
 from adapter import Bar, returns_from_bars
 
 Hunter = Callable[[], Dict]
@@ -27,18 +28,34 @@ def make_cross_sectional_hunter(symbol_bars: Dict[str, List[Bar]],
                                 top_frac: float = 0.3, taker_bps: float = 4.5,
                                 slippage_bps: float = 5.0, n_trials: int = 1,
                                 sr_variance: float = 0.05, train_frac: float = 0.7,
-                                exec_lag: int = 1) -> Hunter:
+                                exec_lag: int = 1, permutations: int = 0) -> Hunter:
+    def run(bars):
+        return xs.cross_sectional_backtest(bars, feature, params, top_frac,
+                                           taker_bps, slippage_bps, exec_lag=exec_lag)
+
     def hunter() -> Dict:
         n = min(len(b) for b in symbol_bars.values())
         cut = int(n * train_frac)
         test_bars = {s: b[cut:n] for s, b in symbol_bars.items()}
-        strat = xs.cross_sectional_backtest(test_bars, feature, params, top_frac,
-                                            taker_bps, slippage_bps, exec_lag=exec_lag)
+        strat = run(test_bars)
         bench = returns_from_bars(bench_bars[cut:n])
         m = min(len(strat), len(bench))
-        return {"strat": strat[:m], "bench": bench[:m],
-                "n_trials": n_trials, "sr_variance": sr_variance}
+        out = {"strat": strat[:m], "bench": bench[:m],
+               "n_trials": n_trials, "sr_variance": sr_variance}
+        return _with_permutation(out, run, test_bars, permutations)
     return hunter
+
+
+def _with_permutation(out: Dict, run, test_bars: Dict[str, List[Bar]], permutations: int) -> Dict:
+    """Ajoute la porte permutation (sur la portion TEST) quand on la demande.
+
+    17/09 : la porte existait dans verdict.py mais aucun chasseur ne la fournissait,
+    elle ne jugeait donc jamais rien. Seules les familles sur bougies peuvent la
+    calculer : on re-tourne la strategie sur des bougies aux returns melanges.
+    """
+    if permutations > 0:
+        out["permutation"] = perm.permutation_test(run, test_bars, n_permutations=permutations)
+    return out
 
 
 def make_funding_carry_hunter(funding_by_coin: Dict[str, List[float]],
@@ -104,15 +121,21 @@ def make_lead_lag_hunter(symbol_bars: Dict[str, List[Bar]], btc_bars: List[Bar],
                          taker_bps: float = 4.5, slippage_bps: float = 5.0,
                          beta_window: int = 48, n_trials: int = 1,
                          sr_variance: float = 0.05, train_frac: float = 0.7,
-                         exec_lag: int = 1) -> Hunter:
+                         exec_lag: int = 1, permutations: int = 0) -> Hunter:
     def hunter() -> Dict:
         n = min(min(len(b) for b in symbol_bars.values()), len(btc_bars))
         cut = int(n * train_frac)
         sb = {s: b[cut:n] for s, b in symbol_bars.items()}
-        strat = ll.lead_lag_backtest(sb, btc_bars[cut:n], lookback, top_frac,
-                                     taker_bps, slippage_bps, beta_window, exec_lag)
-        bench = returns_from_bars(btc_bars[cut:n])
+        btc_test = btc_bars[cut:n]
+
+        def run(bars):
+            return ll.lead_lag_backtest(bars, btc_test, lookback, top_frac,
+                                        taker_bps, slippage_bps, beta_window, exec_lag)
+
+        strat = run(sb)
+        bench = returns_from_bars(btc_test)
         m = min(len(strat), len(bench))
-        return {"strat": strat[:m], "bench": bench[:m],
-                "n_trials": n_trials, "sr_variance": sr_variance}
+        out = {"strat": strat[:m], "bench": bench[:m],
+               "n_trials": n_trials, "sr_variance": sr_variance}
+        return _with_permutation(out, run, sb, permutations)
     return hunter
