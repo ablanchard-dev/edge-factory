@@ -56,10 +56,27 @@ persisted (`pbo` is `null` in the committed records).
 
 ```bash
 pip install -r requirements.txt
+python selftest.py        # proof the critic works, offline, < 1 s (see below)
 python -m pytest -q       # the test suite, no network
 python run_hunt.py        # full hunt on the live Hyperliquid perp universe (60 days, 1h)
 python run_autonomous.py  # optional: LLM proposes DSL hypotheses (needs the claude CLI)
 ```
+
+`selftest.py` judges 200 pure-noise strategies and keeps the best one (maximal data
+mining), then a planted edge and a realistic, partly market-exposed one:
+
+```json
+{
+  "best_of_noise_rejected": true,
+  "noise_survivor_rate": 0.0,
+  "planted_edge_detected": true,
+  "realistic_edge_detected": true,
+  "pass": true
+}
+```
+
+It fails both ways: a critic that passes everything lets noise through (`noise_survivor_rate`
+1.0), one that rejects everything misses the planted edge. Both mutations were run.
 
 `hunt.py` and `autonomous.py` are the libraries behind these entry points; running them
 directly does nothing. Without a Coinalyze key in `~/.coinalyze_key`, the hunt skips the
