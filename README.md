@@ -11,6 +11,11 @@ edges before you ever believe in them**.
 > has repeatedly killed strategies that looked profitable but were just noise. In
 > quant research, a tool that reliably says "no" is worth more than one that flatters
 > your ideas.
+>
+> That headline is a test, not a claim: `test_readme_promises.py` reads the committed
+> verdict files and fails if the count drifts, if any entry lacks a verdict, or if a
+> single hypothesis ever comes back `pass: True` — in which case this paragraph has to be
+> rewritten. A good result that leaves the README lying is still a README that lies.
 
 ## What it does
 
@@ -92,7 +97,7 @@ significant residual alpha (t = 4.27) and a DSR of 0.93, just under the 0.95 gat
 ## Layout
 
 ```
-*.py                       # 75 modules + 43 test files (17/09/2026): generator, critic, backtest, gbm,
+*.py                       # 75 modules + 44 test files (checked by tests, not by hand): generator, critic, backtest, gbm,
                            #   ridge, metrics, neutralize, hypothesis_dsl, llm_hypothesis,
                            #   adapters (hl, equities), signals (obi, funding, liq, …)
 app/services/hl_api/       # vendored Hyperliquid data client (InfoClient)
