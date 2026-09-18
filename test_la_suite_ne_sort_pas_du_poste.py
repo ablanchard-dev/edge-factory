@@ -8,8 +8,6 @@ import socket
 
 import pytest
 
-from conftest import SortieReseauInterdite
-
 
 def test_le_blocage_reseau_MORD_vraiment():
     """🔴 Un bloqueur devenu inopérant laisse passer exactement ce qu'il doit arrêter.
@@ -17,8 +15,14 @@ def test_le_blocage_reseau_MORD_vraiment():
     La suite resterait verte, et « no network » ne serait plus tenu par rien, sans qu'aucune
     ligne ne change.
     """
-    with pytest.raises(SortieReseauInterdite):
+    # On ne fait PAS `from conftest import ...` : selon la disposition du depot, le dossier du
+    # conftest n'est pas sur `sys.path`. Verifier le NOM ecarte aussi un faux positif : une
+    # panne DNS leve `gaierror`, pas ca.
+    with pytest.raises(Exception) as leve:
         socket.create_connection(("example.com", 80), timeout=1)
+    assert type(leve.value).__name__ == "SortieReseauInterdite", (
+        f"la sortie a echoue pour une autre raison ({type(leve.value).__name__})"
+    )
 
 
 def test_la_boucle_locale_reste_ouverte():
