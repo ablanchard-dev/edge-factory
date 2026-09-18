@@ -68,7 +68,9 @@ python run_autonomous.py  # optional: LLM proposes DSL hypotheses (needs the cla
 ```
 
 `selftest.py` judges 200 pure-noise strategies and keeps the best one (maximal data
-mining), then a planted edge and a realistic, partly market-exposed one:
+mining), then a planted edge and a realistic, partly market-exposed one. The block below is
+not a transcript: a test runs `selftest.py` and fails if its output stops matching, so the
+published result cannot drift away from the program:
 
 ```json
 {

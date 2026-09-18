@@ -20,6 +20,8 @@ from __future__ import annotations
 import ast
 import json
 import re
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -253,6 +255,32 @@ def test_le_code_livre_n_execute_aucun_texte():
     assert not fautes, (
         "le README promet « no arbitrary code execution » ; ces appels le contredisent :\n  "
         + "\n  ".join(fautes)
+    )
+
+
+def test_le_bloc_JSON_du_README_est_CE_QUE_selftest_imprime():
+    """Le README publie la sortie de `selftest.py` — elle doit en VENIR, pas lui ressembler.
+
+    C'est la démonstration centrale du dépôt : 200 stratégies de bruit pur jugées, la meilleure
+    rejetée, un edge planté détecté. Le bloc est recopié dans le README, donc il peut dériver —
+    et le jour où le critique changera de comportement, c'est précisément le bloc qu'on oubliera
+    de mettre à jour.
+
+    `selftest.py` est hors-ligne et tient en moins d'une seconde : rien n'empêche de le LANCER
+    et de comparer. Reproduit exactement le 18/09/2026.
+    """
+    trouve = re.search(r"```json\s*(\{.*?\})\s*```", (RACINE / "README.md").read_text(encoding="utf-8"), re.S)
+    assert trouve, "le README ne publie plus la sortie de `selftest.py`"
+    publie = json.loads(trouve.group(1))
+
+    r = subprocess.run([sys.executable, "selftest.py"], cwd=RACINE,
+                       capture_output=True, text=True, timeout=300)
+    assert r.returncode == 0, f"`selftest.py` ne tourne plus : {r.stderr[-400:]}"
+    reel = json.loads(r.stdout[r.stdout.index("{"):r.stdout.rindex("}") + 1])
+
+    assert reel == publie, (
+        "le bloc du README n'est plus ce que le programme imprime :\n"
+        f"  publié : {publie}\n  réel   : {reel}"
     )
 
 
