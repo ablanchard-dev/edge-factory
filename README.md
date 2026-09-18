@@ -62,7 +62,7 @@ persisted (`pbo` is `null` in the committed records).
 ```bash
 pip install -r requirements.txt pytest
 python selftest.py        # proof the critic works, offline, < 1 s (see below)
-python -m pytest -q       # the test suite, no network
+python -m pytest -q       # the test suite, no network (the suite blocks outbound sockets on itself)
 python run_hunt.py        # full hunt on the live Hyperliquid perp universe (60 days, 1h)
 python run_autonomous.py  # optional: LLM proposes DSL hypotheses (needs the claude CLI)
 ```
@@ -99,7 +99,7 @@ significant residual alpha (t = 4.27) and a DSR of 0.93, just under the 0.95 gat
 ## Layout
 
 ```
-*.py                       # 75 modules + 44 test files (checked by tests, not by hand): generator, critic, backtest, gbm,
+*.py                       # 76 modules + 45 test files (checked by tests, not by hand): generator, critic, backtest, gbm,
                            #   ridge, metrics, neutralize, hypothesis_dsl, llm_hypothesis,
                            #   adapters (hl, equities), signals (obi, funding, liq, …)
 app/services/hl_api/       # vendored Hyperliquid data client (InfoClient)
