@@ -83,6 +83,97 @@ def test_le_nombre_de_verdicts_du_README_est_celui_des_fichiers():
     )
 
 
+def verdicts_qui_passent(fichiers=FICHIERS_DE_RECHERCHE, racine=RACINE) -> list[str]:
+    """Les hypothèses enregistrées que le critique a laissées passer.
+
+    Chaque entrée DOIT porter la clé `pass` : une entrée qui ne la porte pas serait
+    comptée comme un échec par défaut, et c'est exactement ainsi qu'un succès
+    disparaîtrait sans bruit.
+    """
+    qui_passent: list[str] = []
+    for nom in fichiers:
+        donnees = json.loads((racine / nom).read_text(encoding="utf-8"))
+        for i, entree in enumerate(donnees):
+            assert "pass" in entree, f"{nom}[{i}] n'a pas de verdict `pass` : illisible, pas negatif"
+            if entree["pass"]:
+                qui_passent.append(f"{nom}[{i}] {entree.get('hypothesis', '?')}")
+    return qui_passent
+
+
+def test_le_titre_honnete_du_README_est_vrai_dans_les_fichiers():
+    """« this machine found **no robust, tradable edge** » — la phrase en gras du README.
+
+    C'est l'affirmation sur laquelle repose tout le depot : un outil qui dit « non » vaut
+    mieux qu'un outil qui flatte. Elle etait ecrite, comptee (66 verdicts), et **verifiee
+    par personne** — le garde du dessus compte les verdicts sans jamais regarder ce qu'ils
+    disent. Mesure du 18/09/2026 : 12 + 12 + 42 = 66 entrees, toutes a `pass: False`.
+
+    Ce test est a double sens, et c'est voulu. Le jour ou une hypothese passera, il tombera
+    et forcera a reecrire le titre. Une bonne nouvelle qui laisse le README mentir reste un
+    README qui ment.
+    """
+    qui_passent = verdicts_qui_passent()
+    assert not qui_passent, (
+        "le README dit que la machine n'a trouve AUCUN edge robuste ; ces verdicts disent "
+        "le contraire — mettre le titre a jour :\n  " + "\n  ".join(qui_passent)
+    )
+
+
+def test_le_garde_VOIT_un_verdict_qui_passe(tmp_path):
+    """Sans ceci, le test du dessus prouverait surtout que `pass` ne vaut jamais vrai."""
+    (tmp_path / "faux_research.json").write_text(
+        json.dumps([
+            {"hypothesis": "momentum 12-1", "pass": False},
+            {"hypothesis": "un edge qui aurait survecu", "pass": True},
+        ]),
+        encoding="utf-8",
+    )
+    trouve = verdicts_qui_passent(("faux_research.json",), tmp_path)
+    assert len(trouve) == 1 and "aurait survecu" in trouve[0], trouve
+
+
+def test_un_verdict_sans_cle_pass_est_refuse_pas_compte_comme_un_echec(tmp_path):
+    """Le contrepoids : un fichier dont la forme change ne doit pas rendre le garde muet."""
+    (tmp_path / "faux_research.json").write_text(
+        json.dumps([{"hypothesis": "forme inconnue", "verdict": "rejected"}]),
+        encoding="utf-8",
+    )
+    try:
+        verdicts_qui_passent(("faux_research.json",), tmp_path)
+    except AssertionError as e:
+        assert "illisible" in str(e)
+    else:
+        raise AssertionError("une entree sans `pass` doit etre nommee, pas avalee")
+
+
+def compte_des_fichiers(racine=RACINE) -> tuple[int, int]:
+    """(modules, fichiers de test) du dépôt, selon la même définition que `_sources`."""
+    tous = [
+        p for p in racine.rglob("*.py")
+        if not any(part in {".venv", "site-packages", "__pycache__", ".pytest_cache"}
+                   for part in p.parts)
+    ]
+    tests = [p for p in tous if p.name.startswith("test_")]
+    return len(tous) - len(tests), len(tests)
+
+
+def test_l_arborescence_du_README_compte_les_fichiers_qui_existent():
+    """« 75 modules + 43 test files (17/09/2026) ».
+
+    Mesure du 18/09/2026 : 75 modules — juste — et **44** fichiers de test. Un chiffre
+    ecrit a la main la veille etait deja faux le lendemain, et sa date ne le rattrape pas :
+    elle dit seulement quand il a cesse d'etre verifie. Il se deduit maintenant.
+    """
+    modules, tests = compte_des_fichiers()
+    texte = (RACINE / "README.md").read_text(encoding="utf-8")
+    trouve = re.search(r"(\d+) modules \+ (\d+) test files", texte)
+    assert trouve, "l'arborescence du README n'annonce plus de compte de fichiers"
+    assert (int(trouve.group(1)), int(trouve.group(2))) == (modules, tests), (
+        f"le README annonce {trouve.group(1)} modules + {trouve.group(2)} fichiers de test, "
+        f"le depot en contient {modules} + {tests}"
+    )
+
+
 def test_le_code_livre_n_execute_aucun_texte():
     fautes = code_arbitraire(RACINE)
     assert not fautes, (
