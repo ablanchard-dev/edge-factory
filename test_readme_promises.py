@@ -22,12 +22,56 @@ import json
 import re
 from pathlib import Path
 
+import pytest
+
 RACINE = Path(__file__).resolve().parent
 FICHIERS_DE_RECHERCHE = ("_equities_research.json", "_xs_research.json", "hunt_memory.json")
 
 # Les primitives par lesquelles du texte devient du code exécuté.
 PRIMITIVES_DANGEREUSES = {"eval", "exec", "compile", "__import__"}
 APPELS_DANGEREUX = {"loads"}  # pickle.loads / marshal.loads
+
+# ⚠️ 18/09/2026 — CE QUE CETTE GARDE NE VOYAIT PAS.
+#
+# Elle reconnaissait quatre primitives et un `.loads`. Mesuré en lui présentant d'autres façons
+# de faire exécuter du texte : **4 sur 15**. Passaient `os.system`, `subprocess.run`,
+# `importlib.import_module`, `yaml.load`, `types.FunctionType` — et surtout, pour un dépôt quant,
+# **`df.query(expression)` et `pd.eval(expression)`** : pandas ÉVALUE la chaîne. Router une
+# expression de DSL vers `df.query()` est le raccourci naturel, et il défait exactement la
+# promesse du README (« a safe DSL, no arbitrary code execution »).
+#
+# Mesure sur le dépôt : **aucune de ces voies n'existe**, sauf UNE — `call_llm_claude` lance
+# `subprocess.run(["claude", "--print", prompt])`. Lue : liste d'arguments fixe, pas de
+# `shell=True`, le prompt est un ARGUMENT, jamais une commande. C'est le canal de l'agent LLM
+# que le README annonce, pas une exécution de DSL.
+#
+# 🔑 D'où ce lot : on reconnaît la CAPACITÉ (faire exécuter quelque chose), et l'unique voie
+# légitime est NOMMÉE. Une absence devient une serrure : un second appel, moins soigné, tombe.
+ATTRIBUTS_QUI_EXECUTENT = {
+    "system": {"os"},                       # os.system("...")
+    "popen": {"os"},                        # os.popen("...")
+    "run": {"subprocess"},                  # subprocess.run([...])
+    "call": {"subprocess"},
+    "check_output": {"subprocess"},
+    "check_call": {"subprocess"},
+    "Popen": {"subprocess"},
+    "import_module": {"importlib"},         # importe un module nommé par du texte
+    "load": {"yaml"},                       # constructeurs arbitraires sans loader sûr
+    "FunctionType": {"types"},              # fabrique une fonction depuis du bytecode
+}
+
+# `eval` et `query` en méthode : `df.eval(expr)` / `df.query(expr)` évaluent la chaîne.
+# `model.evaluate(X, y)` porte un AUTRE nom et n'est donc pas concerné — la comparaison est
+# exacte, jamais un préfixe.
+METHODES_QUI_EVALUENT = {"eval", "query"}
+
+# L'unique voie d'exécution du dépôt, nommée et justifiée. Par FICHIER et fonction : un appel
+# identique ailleurs n'hérite pas de cette permission.
+EXECUTIONS_AUTORISEES = {
+    "llm_hypothesis.py:call_llm_claude":
+        "le canal de l'agent LLM annoncé par le README : argv fixe, pas de shell, "
+        "le prompt est un argument et jamais une commande",
+}
 
 
 def _sources(racine: Path) -> list[Path]:
@@ -55,24 +99,54 @@ def verdicts_annonces() -> int:
     return int(trouve.group(1) or trouve.group(2))
 
 
+def _ce_qui_execute(noeud: ast.Call) -> str | None:
+    """Le nom de la capacité si cet appel peut faire exécuter quelque chose, sinon None."""
+    f = noeud.func
+    if isinstance(f, ast.Name) and f.id in PRIMITIVES_DANGEREUSES:
+        return f"{f.id}()"
+    if not isinstance(f, ast.Attribute):
+        return None
+    porteur = ast.unparse(f.value).split(".")[-1]
+    # `json.loads` est inoffensif ; `pickle.loads` / `marshal.loads` ne le sont pas.
+    if f.attr in APPELS_DANGEREUX and porteur in {"pickle", "marshal", "dill", "cPickle"}:
+        return f"{porteur}.{f.attr}()"
+    if f.attr in ATTRIBUTS_QUI_EXECUTENT and porteur in ATTRIBUTS_QUI_EXECUTENT[f.attr]:
+        return f"{porteur}.{f.attr}()"
+    # `df.eval(expr)` / `df.query(expr)` : pandas évalue la chaîne. `ast.literal_eval` est SÛR
+    # par construction — c'est la bonne réponse à `eval`, on ne l'accuse pas.
+    if f.attr in METHODES_QUI_EVALUENT and porteur != "ast":
+        return f"…{f.attr}()"
+    return None
+
+
 def code_arbitraire(racine: Path) -> list[str]:
-    """Les endroits du code livré où du texte pourrait devenir du code exécuté."""
+    """Les endroits du code livré où du texte pourrait devenir du code exécuté.
+
+    La permission se lit par FICHIER et fonction englobante : un appel identique ailleurs
+    n'hérite pas de l'autorisation accordée à celui-ci.
+    """
     fautes: list[str] = []
     for chemin in _sources(racine):
+        rel = chemin.relative_to(racine).as_posix()
         arbre = ast.parse(chemin.read_text(encoding="utf-8-sig"), filename=str(chemin))
-        for noeud in ast.walk(arbre):
-            if not isinstance(noeud, ast.Call):
+
+        # Chaque appel, avec le nom de la fonction qui le porte ("<module>" au premier niveau).
+        porteurs: list[tuple[ast.Call, str]] = []
+        for n in ast.walk(arbre):
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                porteurs += [(c, n.name) for c in ast.walk(n) if isinstance(c, ast.Call)]
+        dans_une_fonction = {id(c) for c, _ in porteurs}
+        porteurs += [(c, "<module>") for c in ast.walk(arbre)
+                     if isinstance(c, ast.Call) and id(c) not in dans_une_fonction]
+
+        for appel, fonction in porteurs:
+            capacite = _ce_qui_execute(appel)
+            if capacite is None:
                 continue
-            f = noeud.func
-            if isinstance(f, ast.Name) and f.id in PRIMITIVES_DANGEREUSES:
-                fautes.append(f"{chemin.relative_to(racine).as_posix()}:{noeud.lineno} {f.id}()")
-            elif isinstance(f, ast.Attribute) and f.attr in APPELS_DANGEREUX:
-                # `json.loads` est inoffensif ; `pickle.loads` / `marshal.loads` ne le sont pas.
-                porteur = ast.unparse(f.value)
-                if porteur.split(".")[-1] in {"pickle", "marshal", "dill", "cPickle"}:
-                    fautes.append(
-                        f"{chemin.relative_to(racine).as_posix()}:{noeud.lineno} {porteur}.{f.attr}()")
-    return fautes
+            if f"{rel}:{fonction}" in EXECUTIONS_AUTORISEES:
+                continue
+            fautes.append(f"{rel}:{appel.lineno} {capacite}  (dans {fonction})")
+    return sorted(set(fautes))
 
 
 def test_le_nombre_de_verdicts_du_README_est_celui_des_fichiers():
@@ -180,6 +254,73 @@ def test_le_code_livre_n_execute_aucun_texte():
         "le README promet « no arbitrary code execution » ; ces appels le contredisent :\n  "
         + "\n  ".join(fautes)
     )
+
+
+def _capacite(code: str) -> str | None:
+    """La capacité d'exécution d'un appel isolé, pour les deux preuves ci-dessous."""
+    appel = ast.parse(code).body[0].value
+    return _ce_qui_execute(appel)
+
+
+@pytest.mark.parametrize(
+    "code,quoi",
+    [
+        ("eval(expr)", "deja vue"),
+        ("exec(src)", "deja vue"),
+        ("pickle.loads(b)", "deja vue"),
+        ("marshal.loads(b)", "deja vue"),
+        ("os.system(cmd)", "commande shell"),
+        ("os.popen(cmd)", "commande shell"),
+        ("subprocess.run(cmd)", "processus"),
+        ("subprocess.Popen(cmd)", "processus"),
+        ("subprocess.check_output(cmd)", "processus"),
+        ("importlib.import_module(nom)", "module nomme par du texte"),
+        ("yaml.load(t)", "constructeurs arbitraires sans loader sur"),
+        ("types.FunctionType(code, {})", "fonction depuis du bytecode"),
+        ("df.query(expression)", "pandas EVALUE la chaine"),
+        ("pd.eval(expression)", "pandas EVALUE la chaine"),
+        ("df.eval(expression)", "pandas EVALUE la chaine"),
+    ],
+)
+def test_le_garde_voit_chaque_facon_de_faire_executer(code, quoi):
+    """🔴 La version d'hier en voyait 4 sur 15, sans que rien ne le dise.
+
+    Un garde qui reconnait quatre orthographes teste surtout que rien ne s'appelle comme elles.
+    """
+    assert _capacite(code) is not None, f"aveugle sur : {code}  ({quoi})"
+
+
+@pytest.mark.parametrize(
+    "code,pourquoi",
+    [
+        ("json.loads(t)", "lecture JSON"),
+        ("ast.literal_eval(t)", "SUR par construction — c'est la bonne reponse a eval"),
+        ("model.evaluate(X, y)", "'evaluate' n'est pas 'eval' : la comparaison est exacte"),
+        ("df.filter(items=cols)", "selection de colonnes"),
+        ("np.load(f)", "'load' n'est dangereux que porte par yaml"),
+        ("session.run(x)", "'run' n'est dangereux que porte par subprocess"),
+    ],
+)
+def test_le_garde_n_accuse_pas_ce_qui_n_execute_rien(code, pourquoi):
+    """Le contrepoids : une garde qui refuse tout se fait retirer."""
+    assert _capacite(code) is None, f"faux positif sur {code} ({pourquoi})"
+
+
+def test_l_unique_voie_d_execution_est_nommee_et_justifiee():
+    """L'absence devient une serrure : la seule exécution du dépôt porte son nom et sa raison.
+
+    Sans cette liste, `subprocess.run` serait soit interdit — et le canal LLM annoncé par le
+    README cesserait d'exister — soit toléré partout, et un second appel moins soigné passerait.
+    """
+    assert EXECUTIONS_AUTORISEES, "une liste vide rendrait la garde muette sur ce point"
+    for cle, raison in EXECUTIONS_AUTORISEES.items():
+        fichier, fonction = cle.split(":")
+        assert (RACINE / fichier).exists(), f"{fichier} a disparu : la permission ne vise plus rien"
+        assert raison.strip(), f"{cle} est autorisee sans raison ecrite"
+        source = (RACINE / fichier).read_text(encoding="utf-8-sig")
+        assert f"def {fonction}(" in source, f"{fonction} n'existe plus dans {fichier}"
+        # La raison invoquee tient sur une propriete verifiable : pas de shell.
+        assert "shell=True" not in source, f"{fichier} a gagne un shell : la raison ne tient plus"
 
 
 def test_le_garde_VOIT_un_eval_ajoute(tmp_path):
